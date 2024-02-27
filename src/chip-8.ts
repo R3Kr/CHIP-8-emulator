@@ -99,7 +99,7 @@ export interface Chip8Screen {
 //   clear() {
 //     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 //   }
-  
+
 // }
 
 export class Chip8 {
@@ -184,30 +184,54 @@ export class Chip8 {
         case 0:
           this.display.fill(false);
           this.pc += 2;
+          console.log("CLEAR");
           break;
         case 1:
           // Combine the two bytes into a single integer (assuming big-endian order)
           this.pc = (secondNibble << 8) | (thirdNibble << 4) | fourthNibble;
+          console.log(
+            `JUMP ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`
+          );
           break;
 
+        case 2:
+          console.log("UNIMPLEMENTED subroutine call");
+          break;
+        case 3:
+          console.log("UNIMPLEMENTED");
+          break;
+        case 4:
+          console.log("UNIMPLEMENTED");
+          break;
+        case 5:
+          console.log("UNIMPLEMENTED");
+          break;
         case 6:
           this.V[secondNibble] = (thirdNibble << 4) | fourthNibble;
           this.pc += 2;
+          console.log(`set V${secondNibble.toString(16)} ${(thirdNibble << 4) | fourthNibble}`)
           break;
         case 7:
           this.V[secondNibble] += (thirdNibble << 4) | fourthNibble;
           this.pc += 2;
+          console.log(`add V${secondNibble.toString(16)} ${(thirdNibble << 4) | fourthNibble}`)
           break;
-
+        case 9:
+          console.log("UNIMPLEMENTED");
+          break;
         case 0xa:
           this.I = (secondNibble << 8) | (thirdNibble << 4) | fourthNibble;
           this.pc += 2;
+          console.log(`set index ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`)
           break;
 
         case 0xd:
           this.draw(secondNibble, thirdNibble, fourthNibble);
+          console.log(`draw ${firstNibble.toString(16)} ${secondNibble.toString(16)} ${thirdNibble.toString(16)}`)
+          this.pc += 2;
           break;
         default:
+          console.log(`UNIMPLEMENTED ${firstNibble.toString(16)}${secondNibble.toString(16)}${thirdNibble.toString(16)}${fourthNibble.toString(16)}`)
       }
       await new Promise<void>((resolve) => setTimeout(() => resolve(), 100));
     }
