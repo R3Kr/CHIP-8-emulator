@@ -4,7 +4,7 @@
 import "./index.css";
 import { Chip8 } from "./chip-8.ts";
 import ibm from "./ibm.ch8";
-import test from "./test_opcode.ch8";
+//import test from "./test_opcode.ch8";
 
 const root = document.getElementById("root")!;
 
