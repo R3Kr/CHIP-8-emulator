@@ -1,43 +1,49 @@
-// import React from "react";
-// import ReactDOM from "react-dom/client";
-// import App from "./App.tsx";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
 import "./index.css";
-import { Chip8 } from "./chip-8.ts";
-import ibm from "./ibm.ch8";
-//import test from "./test_opcode.ch8";
 
-const root = document.getElementById("root")!;
 
-const canvas = document.createElement("canvas");
 
-canvas.width = 500;
-canvas.height = 500;
+// const root = document.getElementById("root")!;
 
-root.append(canvas);
+// const canvas = document.createElement("canvas");
 
-const chip8 = new Chip8();
-const ctx = canvas.getContext("2d")!;
-const render = () => {
-  for (let y = 0; y < 32; y++) {
-    for (let x = 0; x < 64; x++) {
-      ctx.fillStyle = chip8.getDisplay()[x + y * 64] ? "green" : "black";
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
-  requestAnimationFrame(render);
-};
+// canvas.width = 640;
+// canvas.height = 320;
 
-fetch(ibm)
-  .then((r) => r.arrayBuffer())
-  .then((buf) => {
-    chip8.loadRom(buf);
-    chip8.cycle();
-  });
+// root.append(canvas);
 
-render();
+// const chip8 = new Chip8();
+// const ctx = canvas.getContext("2d")!;
+// const render = () => {
+//   for (let y = 0; y < 32; y++) {
+//     for (let x = 0; x < 64; x++) {
+//       ctx.fillStyle = chip8.getDisplay()[x + y * 64] ? "green" : "black";
+//       ctx.fillRect(x * 10, y * 10, 10, 10);
+//     }
+//   }
+//   requestAnimationFrame(render);
+// };
 
-// ReactDOM.createRoot(document.getElementById('root')!).render(
-//   <React.StrictMode>
-//     <App />
-//   </React.StrictMode>,
-// )
+// fetch(test)
+//   .then((r) => r.arrayBuffer())
+//   .then((buf) => {
+//     chip8.loadRom(buf);
+//     chip8.start();
+//   });
+
+// render();
+//const queryClient = new QueryClient()
+// await queryClient.fetchQuery({queryKey:["rom"], queryFn: async () => {
+//   const r = await fetch(ibm);
+//   const buf = await r.arrayBuffer()
+//   return buf.slice(0, buf.byteLength)
+// }})
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    {/* <QueryClientProvider client={queryClient}> */}
+      <App />
+    {/* </QueryClientProvider> */}
+  </React.StrictMode>
+);
