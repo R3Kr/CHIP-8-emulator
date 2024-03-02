@@ -43,10 +43,10 @@ function App() {
   const currentInstructionStream = useMemo(
     () =>
       new WritableStream<number>({
-        start(controller: WritableStreamDefaultController) {
-          console.log("Stream started");
+        start() {
+          if (DEBUG) console.log("Stream started");
         },
-        write(chunk: number, controller: WritableStreamDefaultController) {
+        write(chunk: number) {
           if (currentIntructionDiv.current) {
             //recentInstructions.splice(0);
             recentInstructions.shift();
@@ -57,10 +57,10 @@ function App() {
           // Handle the chunk. For example, write it to the DOM or send it over the network.
         },
         close() {
-          console.log("Stream closed");
+          if (DEBUG) console.log("Stream closed");
         },
         abort(reason: any) {
-          console.error(`Stream aborted due to: ${reason}`);
+          if (DEBUG) console.error(`Stream aborted due to: ${reason}`);
         },
       }).getWriter(),
     [currentIntructionDiv.current]
