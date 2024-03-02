@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Chip8 } from "./chip-8";
+import { Chip8, Chip8Options } from "./chip-8";
 //import test from "./test_opcode.ch8";
 import ibm from "./ibm.ch8";
 // import { useQuery } from "@tanstack/react-query";
@@ -23,8 +23,11 @@ const keyBindings = [
   "c",
   "v",
 ] as const;
+
 const keys = new Array(16).fill(false);
-const chip8 = new Chip8(keys);
+const chip8options: Chip8Options = {};
+const chip8 = new Chip8(keys, chip8options);
+const recentInstructions = new Array<string>(10).fill((0x0).toString(16));
 
 function App() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -32,9 +35,36 @@ function App() {
   const filePicker = useRef<HTMLInputElement>(null);
   const onColorInput = useRef<HTMLInputElement>(null);
   const offColorInput = useRef<HTMLInputElement>(null);
+  const currentIntructionDiv = useRef<HTMLDivElement>(null);
   const [rom, setRom] = useState<ArrayBuffer>();
   const [romUrl, setRomUrl] = useState(ibm);
   const [isPaused, setIsPaused] = useState(chip8.isPaused());
+
+  const currentInstructionStream = useMemo(
+    () =>
+      new WritableStream<number>({
+        start(controller: WritableStreamDefaultController) {
+          console.log("Stream started");
+        },
+        write(chunk: number, controller: WritableStreamDefaultController) {
+          if (currentIntructionDiv.current) {
+            //recentInstructions.splice(0);
+            recentInstructions.shift();
+            recentInstructions.push(chunk.toString(16));
+            currentIntructionDiv.current.innerHTML =
+              recentInstructions.join("<br>");
+          }
+          // Handle the chunk. For example, write it to the DOM or send it over the network.
+        },
+        close() {
+          console.log("Stream closed");
+        },
+        abort(reason: any) {
+          console.error(`Stream aborted due to: ${reason}`);
+        },
+      }).getWriter(),
+    [currentIntructionDiv.current]
+  );
 
   // useEffect(() => {
   //   setRom(data);
@@ -64,6 +94,9 @@ function App() {
   }, []);
 
   useEffect(() => {
+    chip8options.currentInstructionWriter = currentInstructionStream;
+  }, [currentInstructionStream]);
+  useEffect(() => {
     if (filePicker.current) {
       const listener = () => {
         const file = filePicker.current?.files?.[0]; // Get the first (and only) file
@@ -71,7 +104,7 @@ function App() {
           const reader = new FileReader();
           reader.onload = function (loadEvent) {
             const arrayBuffer = loadEvent?.target?.result;
-            setRom(arrayBuffer as ArrayBuffer)
+            setRom(arrayBuffer as ArrayBuffer);
           };
           reader.onerror = function () {
             console.error("There was an error reading the file:", reader.error);
@@ -133,7 +166,6 @@ function App() {
       <br />
       <label>Upload ch8: </label>
       <input type="file" ref={filePicker} accept=".ch8" />
-     
       {/* <button onClick={() => chip8.start()}>Start</button> */}
       {/* <button onClick={() => chip8.stop()}>Abort</button> */}
       <canvas ref={canvas} width={640} height={320}></canvas>
@@ -150,6 +182,8 @@ function App() {
       >
         {isPaused ? "Unpause" : "Pause"}
       </button>
+      <br />
+      Recent Intructions: <div ref={currentIntructionDiv}></div>
     </>
   );
 }

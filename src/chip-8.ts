@@ -103,8 +103,12 @@ export interface Chip8Screen {
 
 // }
 
+export interface Chip8Options {
+   currentInstructionWriter?: WritableStreamDefaultWriter<number>
+} 
+
 export class Chip8 {
-  memory: Uint8Array;
+  readonly memory: Uint8Array;
   V: Uint8Array;
   I: number;
   pc: number;
@@ -116,8 +120,11 @@ export class Chip8 {
   setIntervalRef?: number;
   tickRate = 20;
   private paused = false;
-  constructor(keys: boolean[]) {
+  readonly memoryView: DataView;
+  options?: Chip8Options;
+  constructor(keys: boolean[], options?: Chip8Options) {
     this.memory = new Uint8Array(4096);
+    this.memoryView = new DataView(this.memory.buffer)
     this.V = new Uint8Array(16); // Registers V0 to VF
     this.I = 0; // Index register
     this.pc = 0x200; // Program counter starts at 0x200
@@ -127,6 +134,11 @@ export class Chip8 {
     this.display = new Array(64 * 32).fill(false); // Display initialized to off
     this.keys = keys; //new Array(16).fill(false); // Key states
     this.memory.set(chip8FontSet, 0x50);
+    this.options = options;
+  }
+
+  setOptions(options: Chip8Options) {
+    this.options = options;
   }
 
   getDisplay() {
@@ -189,6 +201,10 @@ export class Chip8 {
     }
   }
 
+  getMemory() {
+    return this.memory.buffer
+  }
+
   private loop() {
     return setInterval(() => {
       if (this.delayTimer) {
@@ -211,7 +227,7 @@ export class Chip8 {
     clearInterval(this.setIntervalRef);
     this.paused = false;
     this.setIntervalRef = undefined;
-    this.memory = new Uint8Array(4096);
+    this.memory.fill(0) //= new Uint8Array(4096);
     this.V = new Uint8Array(16); // Registers V0 to VF
     this.I = 0; // Index register
     this.pc = 0x200; // Program counter starts at 0x200
@@ -231,6 +247,9 @@ export class Chip8 {
     const secondNibble = this.memory[this.pc] & 0xf;
     const thirdNibble = this.memory[this.pc + 1] >> 4;
     const fourthNibble = this.memory[this.pc + 1] & 0xf;
+    //this.options?.currentInstructionWriter?.write(this.memoryView.getUint16(this.pc))
+    this.options?.currentInstructionWriter?.write(this.memoryView.getUint16(this.pc))
+
     this.pc += 2;
     switch (firstNibble) {
       case 0:
