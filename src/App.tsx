@@ -4,7 +4,9 @@ import { Chip8 } from "./chip-8";
 import ibm from "./ibm.ch8";
 // import { useQuery } from "@tanstack/react-query";
 
-const chip8 = new Chip8();
+const keyBindings = ["1", "2", "3", "4", "q", "w", "e", "r", "a", "s", "d", "f", "z", "x", "c", "v"] as const
+const keys = new Array(16).fill(false);
+const chip8 = new Chip8(keys);
 
 function App() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -15,6 +17,31 @@ function App() {
   // useEffect(() => {
   //   setRom(data);
   // }, [data]);
+  useEffect(() => {
+    const keydown = (ev: KeyboardEvent) => {
+      const index = keyBindings.findIndex((v) => v === ev.key.toLowerCase())
+      if (index !== -1) {
+        keys[index] = true;
+        console.log("pressed " + index)
+      }
+    }
+    const keyup = (ev: KeyboardEvent) => {
+      const index = keyBindings.findIndex((v) => v === ev.key.toLowerCase())
+      if (index !== -1) {
+        keys[index] = false;
+        console.log("released " + index)
+      }
+      
+    }
+    document.addEventListener("keydown", keydown)
+    document.addEventListener("keyup", keyup)
+
+    return () => {
+      document.removeEventListener("keydown", keydown)
+      document.removeEventListener("keyup", keyup)
+    }
+  }, []);
+
   useEffect(() => {
     fetch(romUrl).then(r => r.arrayBuffer()).then(buf => setRom(buf))   
   }, [romUrl])

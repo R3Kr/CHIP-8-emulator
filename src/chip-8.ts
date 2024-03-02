@@ -1,3 +1,4 @@
+const DEBUG = false as const;
 const chip8FontSet = [
   0xf0,
   0x90,
@@ -113,7 +114,8 @@ export class Chip8 {
   display: boolean[];
   keys: boolean[];
   cycleInterval?: number;
-  constructor() {
+  tickRate = 20;
+  constructor(keys: boolean[]) {
     this.memory = new Uint8Array(4096);
     this.V = new Uint8Array(16); // Registers V0 to VF
     this.I = 0; // Index register
@@ -122,7 +124,7 @@ export class Chip8 {
     this.delayTimer = 0;
     this.soundTimer = 0;
     this.display = new Array(64 * 32).fill(false); // Display initialized to off
-    this.keys = new Array(16).fill(false); // Key states
+    this.keys = keys; //new Array(16).fill(false); // Key states
     this.memory.set(chip8FontSet, 0x50);
   }
 
@@ -180,8 +182,10 @@ export class Chip8 {
       if (this.soundTimer) {
         this.soundTimer--;
       }
-      this.cycle();
-    }, 10);
+      for (let i = 0; i < this.tickRate; i++) {
+        this.cycle();
+      }
+    }, 1000/60);
   }
 
   stop() {
@@ -213,66 +217,73 @@ export class Chip8 {
         if (fourthNibble === 0xe) {
           const newpc = this.stack.pop();
           this.pc = newpc ? newpc : 0x200;
-          console.log(
-            newpc ? "return" : "RUNTIME ERROR: cant return from empty callstack"
-          );
+          DEBUG ??
+            console.log(
+              newpc
+                ? "return"
+                : "RUNTIME ERROR: cant return from empty callstack"
+            );
         } else {
           this.display.fill(false);
-          console.log("CLEAR");
+          DEBUG ?? console.log("CLEAR");
         }
         break;
       case 1:
         // Combine the two bytes into a single integer (assuming big-endian order)
         this.pc = (secondNibble << 8) | (thirdNibble << 4) | fourthNibble;
-        console.log(
-          `jump ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`
-        );
+        DEBUG ??
+          console.log(
+            `jump ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`
+          );
         break;
 
       case 2:
         this.stack.push(this.pc);
         this.pc = (secondNibble << 8) | (thirdNibble << 4) | fourthNibble;
-        console.log(
-          `call ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`
-        );
+        DEBUG ??
+          console.log(
+            `call ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`
+          );
         break;
       case 3:
         if (this.V[secondNibble] === ((thirdNibble << 4) | fourthNibble)) {
           this.pc += 2;
         }
-        console.log("conditional");
+        DEBUG ?? console.log("conditional");
         break;
       case 4:
         if (this.V[secondNibble] !== ((thirdNibble << 4) | fourthNibble)) {
           this.pc += 2;
         }
-        console.log("conditional");
+        DEBUG ?? console.log("conditional");
         break;
       case 5:
         if (this.V[secondNibble] === this.V[thirdNibble]) {
           this.pc += 2;
         }
-        console.log("conditional");
+        DEBUG ?? console.log("conditional");
         break;
       case 6:
         this.V[secondNibble] = (thirdNibble << 4) | fourthNibble;
-        console.log(
-          `set V${secondNibble.toString(16)} ${
-            (thirdNibble << 4) | fourthNibble
-          }`
-        );
+        DEBUG ??
+          console.log(
+            `set V${secondNibble.toString(16)} ${
+              (thirdNibble << 4) | fourthNibble
+            }`
+          );
         break;
       case 7:
         this.V[secondNibble] += (thirdNibble << 4) | fourthNibble;
-        console.log(
-          `add V${secondNibble.toString(16)} ${
-            (thirdNibble << 4) | fourthNibble
-          }`
-        );
+        DEBUG ??
+          console.log(
+            `add V${secondNibble.toString(16)} ${
+              (thirdNibble << 4) | fourthNibble
+            }`
+          );
         break;
 
       case 8:
-        console.log("register operation");
+        DEBUG ?? console.log("register operation");
         switch (fourthNibble) {
           case 0:
             this.V[secondNibble] = this.V[thirdNibble];
@@ -316,58 +327,63 @@ export class Chip8 {
             this.V[0xf] = bit2 ? 1 : 0;
             break;
           default:
-            console.log("unknown intruction");
+            DEBUG ?? console.log("unknown intruction");
         }
         break;
       case 9:
         if (this.V[secondNibble] !== this.V[thirdNibble]) {
           this.pc += 2;
         }
-        console.log("conditional");
+        DEBUG ?? console.log("conditional");
         break;
       case 0xa:
         this.I = (secondNibble << 8) | (thirdNibble << 4) | fourthNibble;
-        console.log(
-          `set index ${(secondNibble << 8) | (thirdNibble << 4) | fourthNibble}`
-        );
+        DEBUG ??
+          console.log(
+            `set index ${
+              (secondNibble << 8) | (thirdNibble << 4) | fourthNibble
+            }`
+          );
         break;
       case 0xb:
         //Ambiguous instruction!
         this.pc =
           (this.V[0] + (secondNibble << 8)) | (thirdNibble << 4) | fourthNibble;
-        console.log(
-          `jump offset V0 + ${
-            (secondNibble << 8) | (thirdNibble << 4) | fourthNibble
-          }`
-        );
+        DEBUG ??
+          console.log(
+            `jump offset V0 + ${
+              (secondNibble << 8) | (thirdNibble << 4) | fourthNibble
+            }`
+          );
         break;
       case 0xc:
         const rand = Math.random() * 1000;
         this.V[secondNibble] = rand & ((thirdNibble << 4) | fourthNibble);
-        console.log("random");
+        DEBUG ?? console.log("random");
         break;
 
       case 0xd:
         this.draw(secondNibble, thirdNibble, fourthNibble);
-        console.log(
-          `draw ${firstNibble.toString(16)} ${secondNibble.toString(
-            16
-          )} ${thirdNibble.toString(16)}`
-        );
+        DEBUG ??
+          console.log(
+            `draw ${firstNibble.toString(16)} ${secondNibble.toString(
+              16
+            )} ${thirdNibble.toString(16)}`
+          );
         break;
       case 0xe:
         if (thirdNibble === 9) {
           if (this.keys[this.V[secondNibble]]) {
             this.pc += 2;
           }
-          console.log("if keypress");
+          DEBUG ?? console.log("if keypress");
         } else if (thirdNibble === 0xa) {
           if (!this.keys[this.V[secondNibble]]) {
             this.pc += 2;
           }
-          console.log("if not keypress");
+          DEBUG ?? console.log("if not keypress");
         } else {
-          console.log("invalid instruction");
+          DEBUG ?? console.log("invalid instruction");
         }
         break;
       case 0xf:
@@ -377,7 +393,7 @@ export class Chip8 {
               this.V[secondNibble] = this.delayTimer;
             } else if (fourthNibble === 0xa) {
               // const keyspressed = this.keys.map((val, i) => ({"index": i, "value": val})).
-              console.log("wait keypress");
+              DEBUG ?? console.log("wait keypress");
               const keyPressedIndex = this.keys.findIndex((val) => val);
               if (keyPressedIndex !== -1) {
                 this.V[secondNibble] = keyPressedIndex;
@@ -385,29 +401,29 @@ export class Chip8 {
                 this.pc -= 2;
               }
             } else {
-              console.log("invalid instruction");
+              DEBUG ?? console.log("invalid instruction");
             }
             break;
           case 1:
             switch (fourthNibble) {
               case 5:
                 this.delayTimer = this.V[secondNibble];
-                console.log("set delay timer");
+                DEBUG ?? console.log("set delay timer");
                 break;
               case 8:
                 this.soundTimer = this.V[secondNibble];
-                console.log("set sound timer");
+                DEBUG ?? console.log("set sound timer");
                 break;
               case 0xe:
                 //obs
                 this.I += this.V[secondNibble];
-                console.log("add to index");
+                DEBUG ?? console.log("add to index");
             }
             break;
           case 2:
             const char = this.V[secondNibble] & 0xf;
             this.I = 0x50 + char;
-            console.log("font char");
+            DEBUG ?? console.log("font char");
             break;
           case 3:
             //tveksam om denna
@@ -421,7 +437,7 @@ export class Chip8 {
           case 5:
             const xregisters = this.V.slice(0, secondNibble + 1);
             this.memory.set(xregisters, this.I);
-            console.log("store memory");
+            DEBUG ?? console.log("store memory");
             break;
           case 6:
             //ambigous
@@ -430,18 +446,19 @@ export class Chip8 {
               this.I + secondNibble + 1
             );
             this.V.set(xmemory);
-            console.log("load memory");
+            DEBUG ?? console.log("load memory");
             break;
           default:
-            console.log("unknown instruction");
+            DEBUG ?? console.log("unknown instruction");
         }
         break;
       default:
-        console.log(
-          `UNIMPLEMENTED ${firstNibble.toString(16)}${secondNibble.toString(
-            16
-          )}${thirdNibble.toString(16)}${fourthNibble.toString(16)}`
-        );
+        DEBUG ??
+          console.log(
+            `UNIMPLEMENTED ${firstNibble.toString(16)}${secondNibble.toString(
+              16
+            )}${thirdNibble.toString(16)}${fourthNibble.toString(16)}`
+          );
     }
   }
 }
