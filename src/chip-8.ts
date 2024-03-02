@@ -112,9 +112,10 @@ export class Chip8 {
   delayTimer: number;
   soundTimer: number;
   display: boolean[];
-  keys: boolean[];
-  cycleInterval?: number;
-  readonly tickRate = 20;
+  readonly keys: boolean[];
+  setIntervalRef?: number;
+  tickRate = 20;
+  private paused = false;
   constructor(keys: boolean[]) {
     this.memory = new Uint8Array(4096);
     this.V = new Uint8Array(16); // Registers V0 to VF
@@ -135,10 +136,24 @@ export class Chip8 {
   // Initialize emulator with ROM
   loadRom(rom: ArrayBuffer) {
     // Load ROM into memory starting at 0x200
-    if (this.cycleInterval) {
+    if (this.setIntervalRef) {
       this.stop();
     }
     this.memory.set(new Uint8Array(rom), 0x200);
+  }
+
+  isPaused() {
+    return this.paused
+  }
+  togglePause() {
+    if (this.paused) {
+      this.start()
+    }
+    else {
+      clearInterval(this.setIntervalRef)
+      this.setIntervalRef = undefined
+    }
+    this.paused = !this.paused
   }
 
   draw(vx: number, vy: number, n: number) {
@@ -174,8 +189,8 @@ export class Chip8 {
     }
   }
 
-  start() {
-    this.cycleInterval = setInterval(() => {
+  private loop() {
+    return setInterval(() => {
       if (this.delayTimer) {
         this.delayTimer--;
       }
@@ -185,12 +200,17 @@ export class Chip8 {
       for (let i = 0; i < this.tickRate; i++) {
         this.cycle();
       }
-    }, 1000 / 60);
+    }, 1000 / 60)
+  }
+
+  start() {
+    this.setIntervalRef = this.loop();
   }
 
   stop() {
-    clearInterval(this.cycleInterval);
-    this.cycleInterval = undefined;
+    clearInterval(this.setIntervalRef);
+    this.paused = false;
+    this.setIntervalRef = undefined;
     this.memory = new Uint8Array(4096);
     this.V = new Uint8Array(16); // Registers V0 to VF
     this.I = 0; // Index register
@@ -217,7 +237,7 @@ export class Chip8 {
         if (fourthNibble === 0xe) {
           const newpc = this.stack.pop();
           this.pc = newpc ? newpc : 0x200;
-          DEBUG ??
+          if (DEBUG) 
             console.log(
               newpc
                 ? "return"
