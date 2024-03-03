@@ -39,10 +39,13 @@ function App() {
   const [rom, setRom] = useState<ArrayBuffer>();
   const [romUrl, setRomUrl] = useState(ibm);
   const [isPaused, setIsPaused] = useState(chip8.isPaused());
+  const [showRecentInstructions, setShowRecentInstructions] = useState(true);
+  const instructionStream = useRef<WritableStreamDefaultWriter<number>>();
 
-  const currentInstructionStream = useMemo(
-    () =>
-      new WritableStream<number>({
+  useEffect(() => {
+    if (DEBUG) console.log(currentIntructionDiv.current)
+    if (currentIntructionDiv.current) {
+      instructionStream.current = new WritableStream<number>({
         start() {
           if (DEBUG) console.log("Stream started");
         },
@@ -62,9 +65,9 @@ function App() {
         abort(reason: any) {
           if (DEBUG) console.error(`Stream aborted due to: ${reason}`);
         },
-      }).getWriter(),
-    [currentIntructionDiv.current]
-  );
+      }).getWriter();
+    }
+  }, [currentIntructionDiv.current]);
 
   // useEffect(() => {
   //   setRom(data);
@@ -94,8 +97,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    chip8options.currentInstructionWriter = currentInstructionStream;
-  }, [currentInstructionStream]);
+    if (DEBUG) console.log(instructionStream.current)
+    chip8options.currentInstructionWriter = instructionStream.current;
+  }, [instructionStream.current]);
   useEffect(() => {
     if (filePicker.current) {
       const listener = () => {
@@ -137,21 +141,27 @@ function App() {
 
   useEffect(() => {
     if (ctx) {
+      const lastFramePixels = new Array<boolean>(64 * 32).fill(true);
+      const display = chip8.getDisplay();
       const render = () => {
         for (let y = 0; y < 32; y++) {
           for (let x = 0; x < 64; x++) {
-            ctx.fillStyle = chip8.getDisplay()[x + y * 64]
-              ? onColorInput.current?.value === ""
-                ? "green"
-                : onColorInput.current!.value
-              : offColorInput.current?.value === ""
-              ? "black"
-              : offColorInput.current!.value;
-            ctx.fillRect(x * 10, y * 10, 1 * 10, 1 * 10);
+            if (lastFramePixels[x + y * 64] !== display[x + y * 64]) {
+              ctx.fillStyle = display[x + y * 64]
+                ? onColorInput.current?.value === ""
+                  ? "green"
+                  : onColorInput.current!.value
+                : offColorInput.current?.value === ""
+                ? "black"
+                : offColorInput.current!.value;
+              ctx.fillRect(x * 10, y * 10, 1 * 10, 1 * 10);
+              lastFramePixels[x + y * 64] = display[x + y * 64];
+            }
           }
         }
         requestAnimationFrame(render);
       };
+
       render();
     }
   }, [ctx]);
@@ -183,7 +193,11 @@ function App() {
         {isPaused ? "Unpause" : "Pause"}
       </button>
       <br />
-      Recent Intructions: <div ref={currentIntructionDiv}></div>
+      <button onClick={() => setShowRecentInstructions((s) => !s)}>
+        {showRecentInstructions ? "Hide instructions" : "Show instructions"}
+      </button>
+      Recent Intructions:{" "}
+      {showRecentInstructions && <div ref={currentIntructionDiv}></div>}
     </>
   );
 }

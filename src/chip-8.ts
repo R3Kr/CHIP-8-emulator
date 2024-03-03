@@ -104,8 +104,8 @@ export interface Chip8Screen {
 // }
 
 export interface Chip8Options {
-   currentInstructionWriter?: WritableStreamDefaultWriter<number>
-} 
+  currentInstructionWriter?: WritableStreamDefaultWriter<number>;
+}
 
 export class Chip8 {
   readonly memory: Uint8Array;
@@ -115,7 +115,7 @@ export class Chip8 {
   stack: number[];
   delayTimer: number;
   soundTimer: number;
-  display: boolean[];
+  readonly display: boolean[];
   readonly keys: boolean[];
   setIntervalRef?: number;
   tickRate = 20;
@@ -124,7 +124,7 @@ export class Chip8 {
   options?: Chip8Options;
   constructor(keys: boolean[], options?: Chip8Options) {
     this.memory = new Uint8Array(4096);
-    this.memoryView = new DataView(this.memory.buffer)
+    this.memoryView = new DataView(this.memory.buffer);
     this.V = new Uint8Array(16); // Registers V0 to VF
     this.I = 0; // Index register
     this.pc = 0x200; // Program counter starts at 0x200
@@ -155,17 +155,16 @@ export class Chip8 {
   }
 
   isPaused() {
-    return this.paused
+    return this.paused;
   }
   togglePause() {
     if (this.paused) {
-      this.start()
+      this.start();
+    } else {
+      clearInterval(this.setIntervalRef);
+      this.setIntervalRef = undefined;
     }
-    else {
-      clearInterval(this.setIntervalRef)
-      this.setIntervalRef = undefined
-    }
-    this.paused = !this.paused
+    this.paused = !this.paused;
   }
 
   draw(vx: number, vy: number, n: number) {
@@ -202,7 +201,7 @@ export class Chip8 {
   }
 
   getMemory() {
-    return this.memory.buffer
+    return this.memory.buffer;
   }
 
   private loop() {
@@ -216,7 +215,7 @@ export class Chip8 {
       for (let i = 0; i < this.tickRate; i++) {
         this.cycle();
       }
-    }, 1000 / 60)
+    }, 1000 / 60);
   }
 
   start() {
@@ -227,14 +226,14 @@ export class Chip8 {
     clearInterval(this.setIntervalRef);
     this.paused = false;
     this.setIntervalRef = undefined;
-    this.memory.fill(0) //= new Uint8Array(4096);
+    this.memory.fill(0); //= new Uint8Array(4096);
     this.V = new Uint8Array(16); // Registers V0 to VF
     this.I = 0; // Index register
     this.pc = 0x200; // Program counter starts at 0x200
     this.stack = [];
     this.delayTimer = 0;
     this.soundTimer = 0;
-    this.display = new Array(64 * 32).fill(false); // Display initialized to off
+    this.display.fill(false); // = new Array(64 * 32).fill(false); // Display initialized to off
     //this.keys = new Array(16).fill(false); // Key states
     this.memory.set(chip8FontSet, 0x50);
   }
@@ -247,8 +246,11 @@ export class Chip8 {
     const secondNibble = this.memory[this.pc] & 0xf;
     const thirdNibble = this.memory[this.pc + 1] >> 4;
     const fourthNibble = this.memory[this.pc + 1] & 0xf;
-    //this.options?.currentInstructionWriter?.write(this.memoryView.getUint16(this.pc))
-    this.options?.currentInstructionWriter?.write(this.memoryView.getUint16(this.pc))
+    this.options?.currentInstructionWriter?.write(
+      this.memoryView.getUint16(this.pc)
+    );
+
+    //if (DEBUG) console.log(this.options?.currentInstructionWriter)
 
     this.pc += 2;
     switch (firstNibble) {
@@ -256,7 +258,7 @@ export class Chip8 {
         if (fourthNibble === 0xe) {
           const newpc = this.stack.pop();
           this.pc = newpc ? newpc : 0x200;
-          if (DEBUG) 
+          if (DEBUG)
             console.log(
               newpc
                 ? "return"
