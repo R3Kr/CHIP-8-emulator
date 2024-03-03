@@ -43,7 +43,7 @@ function App() {
   const instructionStream = useRef<WritableStreamDefaultWriter<number>>();
 
   useEffect(() => {
-    if (DEBUG) console.log(currentIntructionDiv.current)
+    if (DEBUG) console.log(currentIntructionDiv.current);
     if (currentIntructionDiv.current) {
       instructionStream.current = new WritableStream<number>({
         start() {
@@ -52,10 +52,13 @@ function App() {
         write(chunk: number) {
           if (currentIntructionDiv.current) {
             //recentInstructions.splice(0);
-            recentInstructions.shift();
-            recentInstructions.push(chunk.toString(16));
-            currentIntructionDiv.current.innerHTML =
-              recentInstructions.join("<br>");
+            const instruction = chunk.toString(16);
+            if (recentInstructions[9] !== instruction) {
+              recentInstructions.shift();
+              recentInstructions.push(chunk.toString(16));
+              currentIntructionDiv.current.innerHTML =
+                recentInstructions.join("<br>");
+            }
           }
           // Handle the chunk. For example, write it to the DOM or send it over the network.
         },
@@ -97,7 +100,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (DEBUG) console.log(instructionStream.current)
+    if (DEBUG) console.log(instructionStream.current);
     chip8options.currentInstructionWriter = instructionStream.current;
   }, [instructionStream.current]);
   useEffect(() => {
