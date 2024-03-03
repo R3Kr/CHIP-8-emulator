@@ -1,4 +1,4 @@
-const DEBUG = import.meta.env.DEV;
+const DEBUG = false && import.meta.env.DEV;
 const chip8FontSet = [
   0xf0,
   0x90,
@@ -105,6 +105,7 @@ export interface Chip8Screen {
 
 export interface Chip8Options {
   currentInstructionWriter?: WritableStreamDefaultWriter<number>;
+  registerWriters: Array<WritableStreamDefaultWriter<number>|undefined>;
 }
 
 export class Chip8 {
@@ -119,6 +120,7 @@ export class Chip8 {
   readonly keys: boolean[];
   setIntervalRef?: number;
   tickRate = 20;
+  hz = 60;
   private paused = false;
   readonly memoryView: DataView;
   options?: Chip8Options;
@@ -165,6 +167,11 @@ export class Chip8 {
       this.setIntervalRef = undefined;
     }
     this.paused = !this.paused;
+  }
+
+  updateRegister(register: number, value: number) {
+    this.V[register] = value;
+    this.options?.registerWriters[register]?.write(this.V[register])
   }
 
   draw(vx: number, vy: number, n: number) {
@@ -215,7 +222,7 @@ export class Chip8 {
       for (let i = 0; i < this.tickRate; i++) {
         this.cycle();
       }
-    }, 1000 / 60);
+    }, 1000 / this.hz);
   }
 
   start() {
@@ -238,8 +245,12 @@ export class Chip8 {
     this.memory.set(chip8FontSet, 0x50);
   }
 
+  step() {
+    this.cycle();
+  }
+
   // Emulator cycle
-  cycle() {
+  private cycle() {
     // Fetch, decode, and execute instructions
 
     const firstNibble = this.memory[this.pc] >> 4;
@@ -374,6 +385,11 @@ export class Chip8 {
           default:
             if (DEBUG) console.log("unknown intruction");
         }
+        this.options?.registerWriters.forEach((w,i) => {
+          if (w) {
+            w.write(this.V[i])
+          }
+        })
         break;
       case 9:
         if (this.V[secondNibble] !== this.V[thirdNibble]) {

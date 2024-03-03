@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Chip8, Chip8Options } from "./chip-8";
 //import test from "./test_opcode.ch8";
 import ibm from "./ibm.ch8";
+import Register from "./Register";
 // import { useQuery } from "@tanstack/react-query";
-const DEBUG = import.meta.env.DEV;
+export const DEBUG = import.meta.env.DEV;
 
 const keyBindings = [
   "1",
@@ -25,7 +26,7 @@ const keyBindings = [
 ] as const;
 
 const keys = new Array(16).fill(false);
-const chip8options: Chip8Options = {};
+const chip8options: Chip8Options = {registerWriters: new Array(16).fill(undefined)};
 const chip8 = new Chip8(keys, chip8options);
 const recentInstructions = new Array<string>(10).fill((0x0).toString(16));
 
@@ -42,6 +43,7 @@ function App() {
   const [showRecentInstructions, setShowRecentInstructions] = useState(true);
   const instructionStream = useRef<WritableStreamDefaultWriter<number>>();
 
+
   useEffect(() => {
     if (DEBUG) console.log(currentIntructionDiv.current);
     if (currentIntructionDiv.current) {
@@ -52,10 +54,10 @@ function App() {
         write(chunk: number) {
           if (currentIntructionDiv.current) {
             //recentInstructions.splice(0);
-            const instruction = chunk.toString(16);
+            const instruction = chunk.toString(16).padStart(4,"0");
             if (recentInstructions[9] !== instruction) {
               recentInstructions.shift();
-              recentInstructions.push(chunk.toString(16));
+              recentInstructions.push(instruction);
               currentIntructionDiv.current.innerHTML =
                 recentInstructions.join("<br>");
             }
@@ -153,10 +155,10 @@ function App() {
               ctx.fillStyle = display[x + y * 64]
                 ? onColorInput.current?.value === ""
                   ? "green"
-                  : onColorInput.current!.value
+                  : "green"//onColorInput.current!.value
                 : offColorInput.current?.value === ""
                 ? "black"
-                : offColorInput.current!.value;
+                : "black"//offColorInput.current!.value;
               ctx.fillRect(x * 10, y * 10, 1 * 10, 1 * 10);
               lastFramePixels[x + y * 64] = display[x + y * 64];
             }
@@ -183,7 +185,11 @@ function App() {
       {/* <button onClick={() => chip8.stop()}>Abort</button> */}
       <canvas ref={canvas} width={640} height={320}></canvas>
       <br />
-      <label>On-Color: </label>
+      <label>Ticks: </label>
+      <input defaultValue={20} type="number" onChange={(e) => chip8.tickRate = e.target.valueAsNumber}></input>
+      <label>Hz: </label>
+      <input defaultValue={60} type="number" onChange={(e) => chip8.hz = e.target.valueAsNumber}></input>
+      <label >On-Color: </label>
       <input ref={onColorInput}></input>
       <label>Off-Color: </label>
       <input ref={offColorInput}></input>
@@ -195,12 +201,14 @@ function App() {
       >
         {isPaused ? "Unpause" : "Pause"}
       </button>
+      {isPaused && <button onClick={()=>chip8.step()}>Step</button>}
       <br />
       <button onClick={() => setShowRecentInstructions((s) => !s)}>
         {showRecentInstructions ? "Hide instructions" : "Show instructions"}
       </button>
       Recent Intructions:{" "}
-      {showRecentInstructions && <div ref={currentIntructionDiv}></div>}
+      {showRecentInstructions && <div style={{fontFamily: "monospace"}} ref={currentIntructionDiv}></div>}
+      {[...new Array(16)].map((_,i) => <Register key={i} chip8={chip8} chip8options={chip8options} register={i} isPaused={isPaused}></Register>)}
     </>
   );
 }
